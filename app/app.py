@@ -28,8 +28,6 @@ example_customer = pd.DataFrame({
     "TotalCharges": [800.0]
 })
 
-print("Example customer:")
-
 model = load_model()
 pred =  model.predict(example_customer)[0]
 if pred == 1:
