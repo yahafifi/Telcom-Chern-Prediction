@@ -30,6 +30,7 @@ example_customer = pd.DataFrame({
 
 model = load_model()
 pred =  model.predict(example_customer)[0]
+# print the prediction result
 if pred == 1:
   print('Churn')
 else:
