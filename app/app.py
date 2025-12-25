@@ -1,11 +1,14 @@
 import joblib
 import pandas as pd
 from flask import Flask, request, jsonify, render_template
+import os
 
 app = Flask(__name__)
 
 def load_model():
-    model = joblib.load('C:\\Users\\yahaf\\OneDrive\\Desktop\\New folder\\Telcom-Chern-Prediction\\model\\telco.joblib')
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    MODEL_PATH = os.path.join(BASE_DIR, '..', 'model', 'telco.joblib')
+    model = joblib.load(MODEL_PATH)
     return model
 
 def prepare_data(data):
@@ -67,4 +70,5 @@ def predict():
     else:
       return jsonify({"prediction": "Not Churn"})
 
-app.run()
+if __name__ == "__main__":
+   app.run(host='0.0.0.0', port=5000, debug=False)
