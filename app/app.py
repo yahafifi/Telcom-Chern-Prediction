@@ -1,6 +1,6 @@
 import joblib
 import pandas as pd
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 
@@ -50,6 +50,11 @@ def prepare_data(data):
         "TotalCharges": [float(TotalCharges)]
     })
     return example_customer
+
+
+@app.route('/', methods=['GET'])
+def home():
+   return render_template('index.html')
 
 @app.route('/predict', methods=['POST'])
 def predict():

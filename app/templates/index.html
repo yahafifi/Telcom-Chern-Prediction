@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Telcom Churn Prediction</title>
+
+  <style>
+    :root{
+      --bg:#0b1020;
+      --card:#0f172a;
+      --card2:#111c33;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --border:rgba(255,255,255,.08);
+      --shadow:0 20px 60px rgba(0,0,0,.45);
+      --radius:18px;
+      --focus:rgba(99,102,241,.45);
+      --ok:#22c55e;
+      --bad:#ef4444;
+      --warn:#f59e0b;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1000px 500px at 10% 10%, rgba(99,102,241,.25), transparent 55%),
+        radial-gradient(900px 500px at 90% 20%, rgba(16,185,129,.18), transparent 55%),
+        radial-gradient(900px 500px at 50% 100%, rgba(244,63,94,.12), transparent 55%),
+        var(--bg);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px 16px;
+    }
+
+    .wrap{
+      width:min(1100px, 100%);
+      display:grid;
+      gap:18px;
+      grid-template-columns: 1.1fr .9fr;
+    }
+
+    @media (max-width: 980px){
+      .wrap{ grid-template-columns:1fr; }
+    }
+
+    .header{
+      grid-column:1 / -1;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:16px;
+      padding: 18px 22px;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      box-shadow: var(--shadow);
+    }
+
+    .header h1{
+      margin:0;
+      font-size:22px;
+      letter-spacing:.2px;
+    }
+    .header p{
+      margin:6px 0 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.4;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.02);
+      color: var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      background: var(--warn);
+      box-shadow:0 0 0 4px rgba(245,158,11,.15);
+    }
+    .dot.ok{ background: var(--ok); box-shadow:0 0 0 4px rgba(34,197,94,.15); }
+    .dot.bad{ background: var(--bad); box-shadow:0 0 0 4px rgba(239,68,68,.15); }
+
+    .card{
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .cardHead{
+      padding:16px 18px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background: rgba(255,255,255,.015);
+    }
+    .cardHead h2{
+      margin:0;
+      font-size:15px;
+      color: var(--text);
+      font-weight:600;
+    }
+    .cardBody{ padding:18px; }
+
+    form{
+      display:grid;
+      gap:14px;
+    }
+
+    .grid2{
+      display:grid;
+      gap:14px;
+      grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 680px){
+      .grid2{ grid-template-columns:1fr; }
+    }
+
+    label{
+      display:block;
+      margin:0 0 6px 0;
+      font-size:12px;
+      color: var(--muted);
+    }
+
+    input, select{
+      width:100%;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,.65);
+      color: var(--text);
+      outline:none;
+      transition: .15s ease;
+    }
+
+    input::placeholder{ color: rgba(156,163,175,.65); }
+
+    input:focus, select:focus{
+      border-color: rgba(99,102,241,.5);
+      box-shadow: 0 0 0 4px var(--focus);
+    }
+
+    .help{
+      margin-top:6px;
+      font-size:11px;
+      color: rgba(156,163,175,.8);
+      line-height:1.35;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:4px;
+    }
+
+    button{
+      border:none;
+      cursor:pointer;
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      color: #0b1020;
+      background: linear-gradient(135deg, rgba(99,102,241,1), rgba(16,185,129,1));
+      transition: transform .12s ease, filter .12s ease, opacity .12s ease;
+    }
+    button:hover{ filter: brightness(1.05); transform: translateY(-1px); }
+    button:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
+
+    .ghost{
+      color: var(--text);
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+    }
+
+    .resultBox{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .big{
+      font-size:18px;
+      font-weight:700;
+      margin:0;
+    }
+    .sub{
+      margin:0;
+      color: var(--muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+      width:fit-content;
+      max-width:100%;
+    }
+
+    .pill strong{ font-size:13px; }
+    .pill span{
+      font-size:12px;
+      color: var(--muted);
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width: 360px;
+      display:inline-block;
+      vertical-align:bottom;
+    }
+
+    .alert{
+      padding:12px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .icon{
+      width:18px;height:18px;border-radius:6px;
+      background: rgba(245,158,11,.18);
+      border: 1px solid rgba(245,158,11,.35);
+      flex: 0 0 auto;
+      margin-top:2px;
+    }
+    .icon.ok{ background: rgba(34,197,94,.18); border-color: rgba(34,197,94,.35); }
+    .icon.bad{ background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.35); }
+
+    .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      color: rgba(229,231,235,.9);
+    }
+
+    .footerNote{
+      color: rgba(156,163,175,.8);
+      font-size: 11px;
+      line-height: 1.4;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <h1>Telcom Churn Prediction</h1>
+        <p>Fill customer details, then click <b>Predict</b>. The form sends data to <span class="mono">POST /predict</span> and displays the JSON response.</p>
+      </div>
+      <div class="badge" id="apiBadge">
+        <span class="dot" id="apiDot"></span>
+        <span id="apiText">API not checked</span>
+      </div>
+    </div>
+
+    <!-- FORM CARD -->
+    <div class="card">
+      <div class="cardHead">
+        <h2>Customer Inputs</h2>
+        <span class="badge"><span class="dot ok"></span> Dark UI</span>
+      </div>
+
+      <div class="cardBody">
+        <form id="churnForm" autocomplete="off">
+          <div class="grid2">
+            <div>
+              <label for="gender">Gender</label>
+              <select id="gender" name="gender" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="SeniorCitizen">Senior Citizen</label>
+              <select id="SeniorCitizen" name="SeniorCitizen" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="0">No (0)</option>
+                <option value="1">Yes (1)</option>
+              </select>
+              <div class="help">Must be <b>0</b> or <b>1</b> (you pass it as-is to your model).</div>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="Partner">Partner</label>
+              <select id="Partner" name="Partner" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="Dependents">Dependents</label>
+              <select id="Dependents" name="Dependents" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="tenure">Tenure (months)</label>
+              <input id="tenure" name="tenure" type="number" min="0" max="1000" placeholder="e.g., 12" required />
+              <div class="help">Converted to <b>int</b> in your backend.</div>
+            </div>
+
+            <div>
+              <label for="PhoneService">Phone Service</label>
+              <select id="PhoneService" name="PhoneService" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="MultipleLines">Multiple Lines</label>
+              <select id="MultipleLines" name="MultipleLines" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="No phone service">No phone service</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="InternetService">Internet Service</label>
+              <select id="InternetService" name="InternetService" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="DSL">DSL</option>
+                <option value="Fiber optic">Fiber optic</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="OnlineSecurity">Online Security</label>
+              <select id="OnlineSecurity" name="OnlineSecurity" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="No internet service">No internet service</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="OnlineBackup">Online Backup</label>
+              <select id="OnlineBackup" name="OnlineBackup" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="No internet service">No internet service</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="DeviceProtection">Device Protection</label>
+              <select id="DeviceProtection" name="DeviceProtection" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="No internet service">No internet service</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="TechSupport">Tech Support</label>
+              <select id="TechSupport" name="TechSupport" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="No internet service">No internet service</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="StreamingTV">Streaming TV</label>
+              <select id="StreamingTV" name="StreamingTV" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="No internet service">No internet service</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="StreamingMovies">Streaming Movies</label>
+              <select id="StreamingMovies" name="StreamingMovies" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="No internet service">No internet service</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="Contract">Contract</label>
+              <select id="Contract" name="Contract" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Month-to-month">Month-to-month</option>
+                <option value="One year">One year</option>
+                <option value="Two year">Two year</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="PaperlessBilling">Paperless Billing</label>
+              <select id="PaperlessBilling" name="PaperlessBilling" required>
+                <option value="" disabled selected>Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="PaymentMethod">Payment Method</label>
+            <select id="PaymentMethod" name="PaymentMethod" required>
+              <option value="" disabled selected>Select...</option>
+              <option value="Electronic check">Electronic check</option>
+              <option value="Mailed check">Mailed check</option>
+              <option value="Bank transfer (automatic)">Bank transfer (automatic)</option>
+              <option value="Credit card (automatic)">Credit card (automatic)</option>
+            </select>
+          </div>
+
+          <div class="grid2">
+            <div>
+              <label for="MonthlyCharges">Monthly Charges</label>
+              <input id="MonthlyCharges" name="MonthlyCharges" type="number" step="0.01" min="0" placeholder="e.g., 70.35" required />
+              <div class="help">Converted to <b>float</b> in your backend.</div>
+            </div>
+
+            <div>
+              <label for="TotalCharges">Total Charges</label>
+              <input id="TotalCharges" name="TotalCharges" type="number" step="0.01" min="0" placeholder="e.g., 1397.50" required />
+              <div class="help">Converted to <b>float</b> in your backend.</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="predictBtn" type="submit">Predict</button>
+            <button class="ghost" type="button" id="fillDemoBtn">Fill demo</button>
+            <button class="ghost" type="reset" id="resetBtn">Reset</button>
+          </div>
+
+          <div class="footerNote">
+            Tip: your backend expects exact string values (e.g., <span class="mono">"No internet service"</span>), so the dropdown options match common Telco churn dataset values.
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- RESULT CARD -->
+    <div class="card">
+      <div class="cardHead">
+        <h2>Prediction Result</h2>
+        <span class="badge"><span class="dot" id="resultDot"></span><span id="resultLabel">Waiting</span></span>
+      </div>
+      <div class="cardBody">
+        <div class="resultBox">
+          <p class="big" id="resultTitle">Submit the form to get a prediction.</p>
+          <p class="sub" id="resultSub">The response from the server will appear here.</p>
+
+          <div class="alert" id="resultAlert" style="display:none;">
+            <div class="icon" id="resultIcon"></div>
+            <div>
+              <div style="font-weight:700;" id="alertHeadline">—</div>
+              <div class="sub" id="alertBody">—</div>
+            </div>
+          </div>
+
+          <div class="pill">
+            <strong>Endpoint</strong>
+            <span class="mono">POST /predict</span>
+          </div>
+
+          <div class="pill">
+            <strong>Response</strong>
+            <span class="mono" id="rawJson">—</span>
+          </div>
+
+          <div class="footerNote">
+            If you run Flask on a different domain/port, you may need CORS. But if this page is served by Flask at <span class="mono">/</span>, it will work directly.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const form = document.getElementById("churnForm");
+  const predictBtn = document.getElementById("predictBtn");
+
+  const resultTitle = document.getElementById("resultTitle");
+  const resultSub = document.getElementById("resultSub");
+  const rawJson = document.getElementById("rawJson");
+
+  const resultDot = document.getElementById("resultDot");
+  const resultLabel = document.getElementById("resultLabel");
+
+  const resultAlert = document.getElementById("resultAlert");
+  const resultIcon = document.getElementById("resultIcon");
+  const alertHeadline = document.getElementById("alertHeadline");
+  const alertBody = document.getElementById("alertBody");
+
+  const apiDot = document.getElementById("apiDot");
+  const apiText = document.getElementById("apiText");
+
+  const fillDemoBtn = document.getElementById("fillDemoBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  // For auto TotalCharges calculation
+  const tenureInput = document.getElementById("tenure");
+  const monthlyChargesInput = document.getElementById("MonthlyCharges");
+  const totalChargesInput = document.getElementById("TotalCharges");
+
+  function setStatus(type, text) {
+    resultLabel.textContent = text;
+    resultDot.className = "dot" + (type ? (" " + type) : "");
+  }
+
+  function showAlert(type, headline, body) {
+    resultAlert.style.display = "flex";
+    resultIcon.className = "icon" + (type ? (" " + type) : "");
+    alertHeadline.textContent = headline;
+    alertBody.textContent = body;
+  }
+
+  function hideAlert() {
+    resultAlert.style.display = "none";
+  }
+
+  function calculateTotalCharges() {
+    const tenure = parseFloat(tenureInput.value);
+    const monthly = parseFloat(monthlyChargesInput.value);
+
+    if (!isNaN(tenure) && !isNaN(monthly)) {
+      const total = tenure * monthly;
+      totalChargesInput.value = total.toFixed(2);
+    } else {
+      totalChargesInput.value = "";
+    }
+  }
+
+  tenureInput.addEventListener("input", calculateTotalCharges);
+  monthlyChargesInput.addEventListener("input", calculateTotalCharges);
+
+  // Optional: mark UI ready on load
+  window.addEventListener("load", () => {
+    apiDot.classList.add("ok");
+    apiText.textContent = "UI ready";
+    calculateTotalCharges();
+  });
+
+  fillDemoBtn.addEventListener("click", () => {
+    const set = (id, val) => document.getElementById(id).value = val;
+
+    set("gender", "Male");
+    set("SeniorCitizen", "0");
+    set("Partner", "Yes");
+    set("Dependents", "No");
+    set("tenure", "12");
+    set("PhoneService", "Yes");
+    set("MultipleLines", "No");
+    set("InternetService", "Fiber optic");
+    set("OnlineSecurity", "No");
+    set("OnlineBackup", "Yes");
+    set("DeviceProtection", "No");
+    set("TechSupport", "No");
+    set("StreamingTV", "Yes");
+    set("StreamingMovies", "Yes");
+    set("Contract", "Month-to-month");
+    set("PaperlessBilling", "Yes");
+    set("PaymentMethod", "Electronic check");
+    set("MonthlyCharges", "79.35");
+
+    // Auto-calc TotalCharges after demo fill
+    calculateTotalCharges();
+  });
+
+  resetBtn.addEventListener("click", () => {
+    hideAlert();
+    rawJson.textContent = "—";
+    resultTitle.textContent = "Submit the form to get a prediction.";
+    resultSub.textContent = "The response from the server will appear here.";
+    setStatus("", "Waiting");
+    // TotalCharges will clear because form reset clears inputs; force recalculation
+    setTimeout(calculateTotalCharges, 0);
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // ensure TotalCharges is up-to-date before submit
+    calculateTotalCharges();
+
+    hideAlert();
+    setStatus("", "Predicting...");
+    resultTitle.textContent = "Predicting...";
+    resultSub.textContent = "Sending data to the server.";
+    rawJson.textContent = "—";
+
+    predictBtn.disabled = true;
+
+    try {
+      // IMPORTANT: send as multipart/form-data (FormData)
+      // Do NOT set Content-Type header manually.
+      const formData = new FormData(form);
+
+      const res = await fetch("/predict", {
+        method: "POST",
+        body: formData
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      }
+
+      const json = await res.json();
+      rawJson.textContent = JSON.stringify(json);
+
+      const pred = (json.prediction || "").toLowerCase();
+
+      if (pred.includes("not")) {
+        setStatus("ok", "Not Churn");
+        resultTitle.textContent = "Prediction: Not Churn ✅";
+        resultSub.textContent = "This customer is less likely to churn based on the model output.";
+        showAlert("ok", "Low churn risk", "You can still improve retention with targeted offers, but the model suggests the customer may stay.");
+        apiDot.className = "dot ok";
+      } else if (pred.includes("churn")) {
+        setStatus("bad", "Churn");
+        resultTitle.textContent = "Prediction: Churn ⚠️";
+        resultSub.textContent = "This customer is more likely to churn based on the model output.";
+        showAlert("bad", "High churn risk", "Consider retention actions: discounts, better plan, proactive support, or contract incentives.");
+        apiDot.className = "dot ok";
+      } else {
+        setStatus("", "Unknown");
+        resultTitle.textContent = "Prediction received (unknown label).";
+        resultSub.textContent = "The server returned a prediction but it wasn't recognized.";
+        showAlert("", "Unexpected response", "Check that your backend returns { prediction: 'Churn' | 'Not Churn' }");
+      }
+
+    } catch (err) {
+      setStatus("bad", "Error");
+      resultTitle.textContent = "Request failed.";
+      resultSub.textContent = "Could not reach /predict or parse response.";
+      showAlert("bad", "Network / Server error", err.message);
+      apiDot.className = "dot bad";
+      apiText.textContent = "API error";
+    } finally {
+      predictBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
